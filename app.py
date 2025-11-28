@@ -1,5 +1,10 @@
 import streamlit as st
 from datetime import datetime, timedelta
+import pytz
+
+KST = pytz.timezone("Asia/Seoul")
+now = datetime.now(KST)
+
 
 st.set_page_config(page_title="인생 제어판", layout="wide")
 

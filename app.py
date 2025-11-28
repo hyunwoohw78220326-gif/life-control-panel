@@ -1,17 +1,16 @@
 import streamlit as st
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+import pytz
+import streamlit.components.v1 as components
 
 # ===========================
-# 타임존 설정 (KST)
+# KST 시간 설정
 # ===========================
-KST = ZoneInfo("Asia/Seoul")
+KST = pytz.timezone("Asia/Seoul")
 
-st.set_page_config(page_title="인생 제어판", layout="wide")
-
-# ---------------------------
-# Session State 초기화
-# ---------------------------
+# ===========================
+# 세션 상태 초기화
+# ===========================
 if "page" not in st.session_state:
     st.session_state.page = "lobby"
 
@@ -33,9 +32,9 @@ if "timer_running" not in st.session_state:
     st.session_state.timer_running = False
     st.session_state.timer_end_time = None
 
-# ---------------------------
+# ===========================
 # 페이지 이동 함수
-# ---------------------------
+# ===========================
 def go_to(page_name):
     st.session_state.page = page_name
 
@@ -69,7 +68,7 @@ if st.session_state.page == "lobby":
 elif st.session_state.page == "goals":
     st.header("🎯 목표 관리")
     goal_input = st.text_input("목표 입력")
-    if st.button("추가", key="add_goal"):
+    if st.button("추가"):
         if goal_input:
             st.session_state.goals.append({"goal": goal_input, "done": False})
     
@@ -77,8 +76,7 @@ elif st.session_state.page == "goals":
     for i, g in enumerate(st.session_state.goals):
         col1, col2, col3 = st.columns([0.1,0.7,0.2])
         with col1:
-            # 체크박스 key는 이미 고유하므로 유지
-            g["done"] = st.checkbox("", key=f"goal_{i}", value=g["done"]) 
+            g["done"] = st.checkbox("", key=f"goal_{i}", value=g["done"])
         with col2:
             st.write(("~~" if g["done"] else "") + g["goal"] + ("~~" if g["done"] else ""))
         with col3:
@@ -88,12 +86,11 @@ elif st.session_state.page == "goals":
         st.session_state.goals.pop(to_delete_goal)
         st.experimental_rerun()
     
-    # 중복 오류 해결: 고유 key 추가
-    if st.button("⬅ 로비로", key="go_lobby_goals"):
+    if st.button("⬅ 로비로"):
         go_to("lobby")
 
 # ===========================
-# 돈 관리 (폼 방식)
+# 돈 관리
 # ===========================
 elif st.session_state.page == "money":
     st.header("💸 돈 관리")
@@ -126,19 +123,18 @@ elif st.session_state.page == "money":
         sign = "-" if t["type"]=="지출" else "+"
         st.write(f"{t['time']} | {t['item']} | {sign}{t['amount']:,}원")
 
-    # 중복 오류 해결: 고유 key 추가
-    if st.button("⬅ 로비로", key="go_lobby_money"):
+    if st.button("⬅ 로비로"):
         go_to("lobby")
 
 # ===========================
-# 할 일 관리 (미루기 경보 포함)
+# 할 일 관리
 # ===========================
 elif st.session_state.page == "todos":
     st.header("📋 할 일 관리")
 
     todo_input = st.text_input("할 일 입력")
     deadline = st.time_input("마감 시간 설정 (오늘)", value=datetime.now(KST).time())
-    if st.button("추가", key="add_todo"):
+    if st.button("추가"):
         if todo_input:
             st.session_state.todos.append({
                 "task": todo_input,
@@ -151,30 +147,8 @@ elif st.session_state.page == "todos":
     for i, t in enumerate(st.session_state.todos):
         col1, col2, col3 = st.columns([0.1,0.6,0.3])
         with col1:
-            # 체크박스 key는 이미 고유하므로 유지
             t["done"] = st.checkbox("", key=f"todo_{i}", value=t["done"])
         with col2:
             st.write(("~~" if t["done"] else "") + t["task"] + ("~~" if t["done"] else ""))
         with col3:
-            deadline_dt = datetime.combine(now.date(), t["deadline"], tzinfo=KST)
-            if not t["done"]:
-                if now > deadline_dt:
-                    st.error("⛔ 마감 지남! 얼른 하자!")
-                else:
-                    remain = deadline_dt - now
-                    # 남은 시간이 0보다 작을 경우 오류 방지 (음수 시간은 표시하지 않음)
-                    if remain.total_seconds() > 0:
-                        st.info(f"남은 시간: {int(remain.total_seconds()//3600)}시간 {int(remain.total_seconds()//60%60)}분")
-                    else:
-                        st.error("⛔ 마감 지남! 얼른 하자!")
-            # 버튼 key는 이미 고유하므로 유지
-            if st.button("삭제", key=f"del_todo_{i}"): 
-                to_delete_todo = i
-                
-    if to_delete_todo is not None:
-        st.session_state.todos.pop(to_delete_todo)
-        st.experimental_rerun()
-    
-    # 중복 오류 해결: 고유 key 추가
-    if st.button("⬅ 로비로", key="go_lobby_todos"):
-        go_to("lobby")
+            deadline_dt = datetime.combine(now.date(), t_

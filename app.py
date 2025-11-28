@@ -151,4 +151,67 @@ elif st.session_state.page == "todos":
         with col2:
             st.write(("~~" if t["done"] else "") + t["task"] + ("~~" if t["done"] else ""))
         with col3:
-            deadline_dt = datetime.combine(now.date(), t_
+            deadline_dt = datetime.combine(now.date(), t["deadline"], tzinfo=KST)
+            if not t["done"]:
+                if now > deadline_dt:
+                    st.error("⛔ 마감 지남! 얼른 하자!")
+                else:
+                    remain = deadline_dt - now
+                    st.info(f"남은 시간: {remain.seconds//3600}시간 {remain.seconds//60%60}분")
+            if st.button("삭제", key=f"del_todo_{i}"):
+                to_delete_todo = i
+    if to_delete_todo is not None:
+        st.session_state.todos.pop(to_delete_todo)
+        st.experimental_rerun()
+    
+    if st.button("⬅ 로비로"):
+        go_to("lobby")
+
+# ===========================
+# 메모장
+# ===========================
+elif st.session_state.page == "notes":
+    st.header("📝 메모장")
+    if "notes" not in st.session_state:
+        st.session_state.notes = ""
+    new_notes = st.text_area("메모 입력", st.session_state.notes)
+    st.session_state.notes = new_notes
+
+    if st.button("⬅ 로비로"):
+        go_to("lobby")
+
+# ===========================
+# 타이머
+# ===========================
+elif st.session_state.page == "timer":
+    st.header("⏱ 집중 타이머")
+    
+    minutes = st.number_input("시간(분)", 1, 180, 25)
+    if st.button("타이머 시작"):
+        st.session_state.timer_running = True
+        st.session_state.timer_end_time = datetime.now(KST) + timedelta(minutes=minutes)
+
+    if st.session_state.timer_running and st.session_state.timer_end_time:
+        now = datetime.now(KST)
+        remaining = st.session_state.timer_end_time - now
+        total_seconds = int(remaining.total_seconds())
+
+        if total_seconds <= 0:
+            st.session_state.timer_running = False
+            st.success("⏰ 타이머 종료!")
+
+            # 브라우저 소리 알람
+            components.html("""
+            <audio autoplay>
+              <source src="https://www.soundjay.com/button/beep-07.mp3" type="audio/mpeg">
+            </audio>
+            """)
+        else:
+            minutes_left = total_seconds // 60
+            seconds_left = total_seconds % 60
+            st.warning(f"남은 시간: {minutes_left}분 {seconds_left}초")
+
+    if st.button("⬅ 로비로"):
+        st.session_state.timer_running = False
+        go_to("lobby")
+

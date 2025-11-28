@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime, timedelta
 import pytz
+import time
 import streamlit.components.v1 as components
 
 # ===========================
@@ -172,8 +173,6 @@ elif st.session_state.page == "todos":
 # ===========================
 elif st.session_state.page == "notes":
     st.header("📝 메모장")
-    if "notes" not in st.session_state:
-        st.session_state.notes = ""
     new_notes = st.text_area("메모 입력", st.session_state.notes)
     st.session_state.notes = new_notes
 
@@ -191,27 +190,31 @@ elif st.session_state.page == "timer":
         st.session_state.timer_running = True
         st.session_state.timer_end_time = datetime.now(KST) + timedelta(minutes=minutes)
 
+    timer_placeholder = st.empty()
+
     if st.session_state.timer_running and st.session_state.timer_end_time:
-        now = datetime.now(KST)
-        remaining = st.session_state.timer_end_time - now
-        total_seconds = int(remaining.total_seconds())
+        while st.session_state.timer_running:
+            now = datetime.now(KST)
+            remaining = st.session_state.timer_end_time - now
+            total_seconds = int(remaining.total_seconds())
 
-        if total_seconds <= 0:
-            st.session_state.timer_running = False
-            st.success("⏰ 타이머 종료!")
-
-            # 브라우저 소리 알람
-            components.html("""
-            <audio autoplay>
-              <source src="https://www.soundjay.com/button/beep-07.mp3" type="audio/mpeg">
-            </audio>
-            """)
-        else:
-            minutes_left = total_seconds // 60
-            seconds_left = total_seconds % 60
-            st.warning(f"남은 시간: {minutes_left}분 {seconds_left}초")
+            if total_seconds <= 0:
+                st.session_state.timer_running = False
+                timer_placeholder.success("⏰ 타이머 종료!")
+                # 브라우저 소리 알람
+                components.html("""
+                <audio autoplay>
+                  <source src="https://www.soundjay.com/button/beep-07.mp3" type="audio/mpeg">
+                </audio>
+                """)
+                break
+            else:
+                minutes_left = total_seconds // 60
+                seconds_left = total_seconds % 60
+                timer_placeholder.warning(f"남은 시간: {minutes_left}분 {seconds_left}초")
+            
+            time.sleep(1)
 
     if st.button("⬅ 로비로"):
         st.session_state.timer_running = False
         go_to("lobby")
-

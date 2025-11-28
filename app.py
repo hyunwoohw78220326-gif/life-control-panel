@@ -43,7 +43,7 @@ if "timer_finished" not in st.session_state:
 def go_to(page_name):
     st.session_state.page = page_name
 
-# 타이머 상태 초기화 함수 (리셋 버튼용)
+# 타이머 상태 초기화 함수
 def reset_timer_state():
     st.session_state.timer_running = False
     st.session_state.timer_end_time = None
@@ -56,21 +56,22 @@ if st.session_state.page == "lobby":
     st.title("인생 제어판")
     st.subheader("노력은 나를 배신하지 않는다")
     
+    # Key 추가하여 위젯 충돌 방지
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
-        if st.button("🎯 목표", key="btn_lobby_goals"): # Key 추가
+        if st.button("🎯 목표", key="btn_lobby_goals"): 
             go_to("goals")
     with col2:
-        if st.button("📋 할 일", key="btn_lobby_todos"): # Key 추가
+        if st.button("📋 할 일", key="btn_lobby_todos"): 
             go_to("todos")
     with col3:
-        if st.button("⏱ 타이머", key="btn_lobby_timer"): # Key 추가
+        if st.button("⏱ 타이머", key="btn_lobby_timer"): 
             go_to("timer")
     with col4:
-        if st.button("💸 돈", key="btn_lobby_money"): # Key 추가
+        if st.button("💸 돈", key="btn_lobby_money"): 
             go_to("money")
     with col5:
-        if st.button("📝 메모장", key="btn_lobby_notes"): # Key 추가
+        if st.button("📝 메모장", key="btn_lobby_notes"): 
             go_to("notes")
 
 # ===========================
@@ -95,7 +96,7 @@ elif st.session_state.page == "goals":
                 to_delete_goal = i
     if to_delete_goal is not None:
         st.session_state.goals.pop(to_delete_goal)
-        st.experimental_rerun()
+        st.rerun() # st.experimental_rerun() -> st.rerun() 변경
     
     if st.button("⬅ 로비로", key="go_lobby_goals"): # Key 추가
         go_to("lobby")
@@ -176,7 +177,7 @@ elif st.session_state.page == "todos":
                 to_delete_todo = i
     if to_delete_todo is not None:
         st.session_state.todos.pop(to_delete_todo)
-        st.experimental_rerun()
+        st.rerun() # st.experimental_rerun() -> st.rerun() 변경
     
     if st.button("⬅ 로비로", key="go_lobby_todos"): # Key 추가
         go_to("lobby")
@@ -278,7 +279,7 @@ elif st.session_state.page == "timer":
         st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True) 
         if st.button("↩ RESET", key="reset_timer_btn_final", use_container_width=True):
             reset_timer_state()
-            st.experimental_rerun()
+            st.rerun() # st.experimental_rerun() -> st.rerun() 변경
             
     # START/STOP 버튼
     with col_stsp:
@@ -287,7 +288,7 @@ elif st.session_state.page == "timer":
             if st.button("⏹ STOP", key="stop_timer_btn_final", type="secondary", use_container_width=True):
                 st.session_state.timer_running = False
                 st.session_state.last_paused_time = datetime.now(KST) 
-                st.experimental_rerun()
+                st.rerun() # st.experimental_rerun() -> st.rerun() 변경
         # 멈춤 상태일 때: START 버튼 표시
         else:
             if st.button("▶ START", key="start_timer_btn_final", type="primary", use_container_width=True, disabled=st.session_state.timer_finished):
@@ -302,13 +303,13 @@ elif st.session_state.page == "timer":
                     
                 st.session_state.timer_running = True
                 st.session_state.timer_finished = False
-                st.experimental_rerun()
+                st.rerun() # st.experimental_rerun() -> st.rerun() 변경
             
     # --- 타이머 업데이트 로직 ---
     # 타이머가 실행 중이라면 1초 후 페이지 새로고침 요청
     if st.session_state.timer_running and not st.session_state.timer_finished:
         time.sleep(1) 
-        st.experimental_rerun()
+        st.rerun() # st.experimental_rerun() -> st.rerun() 변경
 
     st.markdown("---")
     if st.button("⬅ 로비로", key="go_lobby_timer_final"): # Key 추가

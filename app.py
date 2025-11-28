@@ -1,10 +1,11 @@
 import streamlit as st
 from datetime import datetime, timedelta
-import pytz
+from zoneinfo import ZoneInfo  # Python 3.9 이상
 
-KST = pytz.timezone("Asia/Seoul")
-now = datetime.now(KST)
-
+# ===========================
+# 타임존 설정 (KST)
+# ===========================
+KST = ZoneInfo("Asia/Seoul")
 
 st.set_page_config(page_title="인생 제어판", layout="wide")
 
@@ -114,7 +115,7 @@ elif st.session_state.page == "money":
             "item": item,
             "amount": amount,
             "type": type_,
-            "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+            "time": datetime.now(KST).strftime("%Y-%m-%d %H:%M")
         })
         st.success("기록 완료!")
 
@@ -133,7 +134,7 @@ elif st.session_state.page == "todos":
     st.header("📋 할 일 관리")
 
     todo_input = st.text_input("할 일 입력")
-    deadline = st.time_input("마감 시간 설정 (오늘)", value=datetime.now().time())
+    deadline = st.time_input("마감 시간 설정 (오늘)", value=datetime.now(KST).time())
     if st.button("추가"):
         if todo_input:
             st.session_state.todos.append({
@@ -142,7 +143,7 @@ elif st.session_state.page == "todos":
                 "done": False
             })
     
-    now = datetime.now()
+    now = datetime.now(KST)
     to_delete_todo = None
     for i, t in enumerate(st.session_state.todos):
         col1, col2, col3 = st.columns([0.1,0.6,0.3])
@@ -151,7 +152,7 @@ elif st.session_state.page == "todos":
         with col2:
             st.write(("~~" if t["done"] else "") + t["task"] + ("~~" if t["done"] else ""))
         with col3:
-            deadline_dt = datetime.combine(now.date(), t["deadline"])
+            deadline_dt = datetime.combine(now.date(), t["deadline"], tzinfo=KST)
             if not t["done"]:
                 if now > deadline_dt:
                     st.error("⛔ 마감 지남! 얼른 하자!")
@@ -173,9 +174,36 @@ elif st.session_state.page == "todos":
 elif st.session_state.page == "notes":
     st.header("📝 메모장")
     new_notes = st.text_area("메모 입력", st.session_state.notes)
-    if new_notes != st.session_state.notes:   # ← 여기 수정
+    if new_notes != st.session_state.notes:
         st.session_state.notes = new_notes
         st.success("✔ 저장 완료")
     
+    if st.button("⬅ 로비로"):
+        go_to("lobby")
+
+# ===========================
+# 타이머
+# ===========================
+elif st.session_state.page == "timer":
+    st.header("⏱ 집중 타이머")
+
+    minutes = st.number_input("시간(분)", 1, 180, 25)
+    if st.button("타이머 시작"):
+        st.session_state.timer_running = True
+        st.session_state.timer_end_time = datetime.now(KST) + timedelta(minutes=minutes)
+
+    if st.session_state.timer_running and st.session_state.timer_end_time is not None:
+        remaining = st.session_state.timer_end_time - datetime.now(KST)
+        total_seconds = int(remaining.total_seconds())
+
+        if total_seconds <= 0:
+            st.session_state.timer_running = False
+            st.success("⏰ 타이머 종료! 수고했어요!")
+        else:
+            minutes_left = total_seconds // 60
+            seconds_left = total_seconds % 60
+            st.warning(f"남은 시간: {minutes_left}분 {seconds_left}초")
+            st.experimental_rerun()
+
     if st.button("⬅ 로비로"):
         go_to("lobby")

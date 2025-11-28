@@ -177,4 +177,4 @@ elif st.session_state.page == "todos":
     
     # 중복 오류 해결: 고유 key 추가
     if st.button("⬅ 로비로", key="go_lobby_todos"):
-        go_to("lobby
+        go_to("lobby")

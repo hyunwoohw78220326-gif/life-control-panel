@@ -23,6 +23,10 @@ if "todos" not in st.session_state:
 if "notes" not in st.session_state:
     st.session_state.notes = ""
 
+if "timer_running" not in st.session_state:
+    st.session_state.timer_running = False
+    st.session_state.timer_end_time = None
+
 # ---------------------------
 # 페이지 이동 함수
 # ---------------------------
@@ -63,6 +67,7 @@ elif st.session_state.page == "goals":
         if goal_input:
             st.session_state.goals.append({"goal": goal_input, "done": False})
     
+    to_delete_goal = None
     for i, g in enumerate(st.session_state.goals):
         col1, col2, col3 = st.columns([0.1,0.7,0.2])
         with col1:
@@ -71,45 +76,48 @@ elif st.session_state.page == "goals":
             st.write(("~~" if g["done"] else "") + g["goal"] + ("~~" if g["done"] else ""))
         with col3:
             if st.button("삭제", key=f"del_goal_{i}"):
-                st.session_state.goals.pop(i)
-                st.experimental_rerun()
+                to_delete_goal = i
+    if to_delete_goal is not None:
+        st.session_state.goals.pop(to_delete_goal)
+        st.experimental_rerun()
     
     if st.button("⬅ 로비로"):
         go_to("lobby")
 
 # ===========================
-# 돈 관리
+# 돈 관리 (폼 방식)
 # ===========================
 elif st.session_state.page == "money":
     st.header("💸 돈 관리")
     st.write(f"💰 현재 잔액: {st.session_state.balance:,}원")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        amount = st.number_input("금액", min_value=0, value=0)
-    with col2:
-        type_ = st.radio("종류", ["지출", "수입"])
-    
-    item = st.text_input("내용")
-    if st.button("기록"):
-        if item and amount > 0:
-            if type_ == "지출":
-                st.session_state.balance -= amount
-            else:
-                st.session_state.balance += amount
-            st.session_state.transactions.append({
-                "item": item,
-                "amount": amount,
-                "type": type_,
-                "time": datetime.now().strftime("%Y-%m-%d %H:%M")
-            })
-            st.experimental_rerun()
-    
+
+    with st.form("money_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            amount = st.number_input("금액", min_value=0, value=0)
+        with col2:
+            type_ = st.radio("종류", ["지출", "수입"])
+        item = st.text_input("내용")
+        submitted = st.form_submit_button("기록")
+
+    if submitted and item and amount > 0:
+        if type_ == "지출":
+            st.session_state.balance -= amount
+        else:
+            st.session_state.balance += amount
+        st.session_state.transactions.append({
+            "item": item,
+            "amount": amount,
+            "type": type_,
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
+        st.success("기록 완료!")
+
     st.subheader("거래 내역")
     for t in reversed(st.session_state.transactions):
         sign = "-" if t["type"]=="지출" else "+"
         st.write(f"{t['time']} | {t['item']} | {sign}{t['amount']:,}원")
-    
+
     if st.button("⬅ 로비로"):
         go_to("lobby")
 
@@ -130,6 +138,7 @@ elif st.session_state.page == "todos":
             })
     
     now = datetime.now()
+    to_delete_todo = None
     for i, t in enumerate(st.session_state.todos):
         col1, col2, col3 = st.columns([0.1,0.6,0.3])
         with col1:
@@ -145,8 +154,10 @@ elif st.session_state.page == "todos":
                     remain = deadline_dt - now
                     st.info(f"남은 시간: {remain.seconds//3600}시간 {remain.seconds//60%60}분")
             if st.button("삭제", key=f"del_todo_{i}"):
-                st.session_state.todos.pop(i)
-                st.experimental_rerun()
+                to_delete_todo = i
+    if to_delete_todo is not None:
+        st.session_state.todos.pop(to_delete_todo)
+        st.experimental_rerun()
     
     if st.button("⬅ 로비로"):
         go_to("lobby")
@@ -157,35 +168,4 @@ elif st.session_state.page == "todos":
 elif st.session_state.page == "notes":
     st.header("📝 메모장")
     new_notes = st.text_area("메모 입력", st.session_state.notes)
-    if new_notes != st.session_state.notes:
-        st.session_state.notes = new_notes
-        st.success("✔ 저장 완료")
-    
-    if st.button("⬅ 로비로"):
-        go_to("lobby")
-
-# ===========================
-# 타이머
-# ===========================
-elif st.session_state.page == "timer":
-    st.header("⏱ 집중 타이머")
-    if "timer_running" not in st.session_state:
-        st.session_state.timer_running = False
-        st.session_state.timer_end_time = None
-
-    minutes = st.number_input("시간(분)", 1, 180, 25)
-    if st.button("타이머 시작"):
-        st.session_state.timer_running = True
-        st.session_state.timer_end_time = datetime.now() + timedelta(minutes=minutes)
-
-    if st.session_state.timer_running:
-        remaining = st.session_state.timer_end_time - datetime.now()
-        if remaining.total_seconds() <= 0:
-            st.session_state.timer_running = False
-            st.success("⏰ 타이머 종료! 수고했어요!")
-        else:
-            st.warning(f"남은 시간: {remaining.seconds//60}분 {remaining.seconds%60}초")
-            st.experimental_rerun()
-    
-    if st.button("⬅ 로비로"):
-        go_to("lobby")
+    if new_notes !_

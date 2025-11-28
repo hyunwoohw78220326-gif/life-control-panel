@@ -1,18 +1,17 @@
 import streamlit as st
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-import streamlit.components.v1 as components
 
 # ===========================
-# KST 시간 설정
+# 타임존 설정 (KST)
 # ===========================
 KST = ZoneInfo("Asia/Seoul")
 
 st.set_page_config(page_title="인생 제어판", layout="wide")
 
-# ===========================
-# 세션 상태 초기화
-# ===========================
+# ---------------------------
+# Session State 초기화
+# ---------------------------
 if "page" not in st.session_state:
     st.session_state.page = "lobby"
 
@@ -34,9 +33,9 @@ if "timer_running" not in st.session_state:
     st.session_state.timer_running = False
     st.session_state.timer_end_time = None
 
-# ===========================
+# ---------------------------
 # 페이지 이동 함수
-# ===========================
+# ---------------------------
 def go_to(page_name):
     st.session_state.page = page_name
 
@@ -70,7 +69,7 @@ if st.session_state.page == "lobby":
 elif st.session_state.page == "goals":
     st.header("🎯 목표 관리")
     goal_input = st.text_input("목표 입력")
-    if st.button("추가"):
+    if st.button("추가", key="add_goal"):
         if goal_input:
             st.session_state.goals.append({"goal": goal_input, "done": False})
     
@@ -78,7 +77,8 @@ elif st.session_state.page == "goals":
     for i, g in enumerate(st.session_state.goals):
         col1, col2, col3 = st.columns([0.1,0.7,0.2])
         with col1:
-            g["done"] = st.checkbox("", key=f"goal_{i}", value=g["done"])
+            # 체크박스 key는 이미 고유하므로 유지
+            g["done"] = st.checkbox("", key=f"goal_{i}", value=g["done"]) 
         with col2:
             st.write(("~~" if g["done"] else "") + g["goal"] + ("~~" if g["done"] else ""))
         with col3:
@@ -88,11 +88,12 @@ elif st.session_state.page == "goals":
         st.session_state.goals.pop(to_delete_goal)
         st.experimental_rerun()
     
-    if st.button("⬅ 로비로"):
+    # 중복 오류 해결: 고유 key 추가
+    if st.button("⬅ 로비로", key="go_lobby_goals"):
         go_to("lobby")
 
 # ===========================
-# 돈 관리
+# 돈 관리 (폼 방식)
 # ===========================
 elif st.session_state.page == "money":
     st.header("💸 돈 관리")
@@ -125,18 +126,19 @@ elif st.session_state.page == "money":
         sign = "-" if t["type"]=="지출" else "+"
         st.write(f"{t['time']} | {t['item']} | {sign}{t['amount']:,}원")
 
-    if st.button("⬅ 로비로"):
+    # 중복 오류 해결: 고유 key 추가
+    if st.button("⬅ 로비로", key="go_lobby_money"):
         go_to("lobby")
 
 # ===========================
-# 할 일 관리
+# 할 일 관리 (미루기 경보 포함)
 # ===========================
 elif st.session_state.page == "todos":
     st.header("📋 할 일 관리")
 
     todo_input = st.text_input("할 일 입력")
     deadline = st.time_input("마감 시간 설정 (오늘)", value=datetime.now(KST).time())
-    if st.button("추가"):
+    if st.button("추가", key="add_todo"):
         if todo_input:
             st.session_state.todos.append({
                 "task": todo_input,
@@ -149,6 +151,7 @@ elif st.session_state.page == "todos":
     for i, t in enumerate(st.session_state.todos):
         col1, col2, col3 = st.columns([0.1,0.6,0.3])
         with col1:
+            # 체크박스 key는 이미 고유하므로 유지
             t["done"] = st.checkbox("", key=f"todo_{i}", value=t["done"])
         with col2:
             st.write(("~~" if t["done"] else "") + t["task"] + ("~~" if t["done"] else ""))
@@ -159,76 +162,19 @@ elif st.session_state.page == "todos":
                     st.error("⛔ 마감 지남! 얼른 하자!")
                 else:
                     remain = deadline_dt - now
-                    st.info(f"남은 시간: {remain.seconds//3600}시간 {remain.seconds//60%60}분")
-            if st.button("삭제", key=f"del_todo_{i}"):
+                    # 남은 시간이 0보다 작을 경우 오류 방지 (음수 시간은 표시하지 않음)
+                    if remain.total_seconds() > 0:
+                        st.info(f"남은 시간: {int(remain.total_seconds()//3600)}시간 {int(remain.total_seconds()//60%60)}분")
+                    else:
+                        st.error("⛔ 마감 지남! 얼른 하자!")
+            # 버튼 key는 이미 고유하므로 유지
+            if st.button("삭제", key=f"del_todo_{i}"): 
                 to_delete_todo = i
+                
     if to_delete_todo is not None:
         st.session_state.todos.pop(to_delete_todo)
         st.experimental_rerun()
     
-    if st.button("⬅ 로비로"):
-        go_to("lobby")
-
-# ===========================
-# 메모장
-# ===========================
-elif st.session_state.page == "notes":
-    st.header("📝 메모장")
-    new_notes = st.text_area("메모 입력", st.session_state.notes)
-    if new_notes != st.session_state.notes:
-        st.session_state.notes = new_notes
-        st.success("✔ 저장 완료")
-    
-    if st.button("⬅ 로비로"):
-        go_to("lobby")
-
-# ===========================
-# 타이머
-# ===========================
-elif st.session_state.page == "timer":
-    st.header("⏱ 집중 타이머")
-
-    minutes = st.number_input("시간(분)", 1, 180, 25)
-    
-    # 타이머 시작 버튼
-    if st.button("타이머 시작", disabled=st.session_state.timer_running):
-        st.session_state.timer_running = True
-        st.session_state.timer_end_time = datetime.now(KST) + timedelta(minutes=minutes)
-        # 타이머 시작 시 바로 리런하여 잔여 시간 표시
-        st.experimental_rerun()
-
-    # 타이머 중지 버튼
-    if st.session_state.timer_running:
-        if st.button("타이머 중지/초기화"):
-            st.session_state.timer_running = False
-            st.session_state.timer_end_time = None
-            st.info("타이머가 중지되었습니다.")
-            st.experimental_rerun() # 상태 초기화 후 화면 업데이트
-
-    if st.session_state.timer_running and st.session_state.timer_end_time is not None:
-        remaining = st.session_state.timer_end_time - datetime.now(KST)
-        total_seconds = int(remaining.total_seconds())
-
-        if total_seconds <= 0:
-            st.session_state.timer_running = False
-            st.session_state.timer_end_time = None # 타이머 만료 시점 초기화
-            st.success("⏰ 타이머 종료! 수고했어요!")
-            # 타이머 종료 후 리런을 멈추기 위해 이 시점에만 리런을 호출하지 않음
-            
-        else:
-            minutes_left = total_seconds // 60
-            seconds_left = total_seconds % 60
-            st.warning(f"남은 시간: {minutes_left}분 {seconds_left}초")
-            
-            # 1초마다 업데이트를 위해 일정 시간 후 리런
-            # Streamlit은 현재 이 기능을 공식적으로 지원하지 않으므로, 
-            # 이를 위해 페이지를 계속 리런하는 것은 Streamlit 앱에 부담을 줄 수 있습니다.
-            # 하지만 실시간 업데이트를 위해 현재 방식이 일반적입니다.
-            # 1초마다 업데이트를 위해 time.sleep(1) 대신 st.experimental_rerun()만 사용합니다.
-            st.experimental_rerun()
-
-    if st.button("⬅ 로비로"):
-        go_to("lobby")
-    if st.button("⬅ 로비로"):
-        st.session_state.timer_running = False
-        go_to("lobby")
+    # 중복 오류 해결: 고유 key 추가
+    if st.button("⬅ 로비로", key="go_lobby_todos"):
+        go_to("lobby

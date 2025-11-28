@@ -1,17 +1,18 @@
 import streamlit as st
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo  # Python 3.9 이상
+from zoneinfo import ZoneInfo
+import streamlit.components.v1 as components
 
 # ===========================
-# 타임존 설정 (KST)
+# KST 시간 설정
 # ===========================
 KST = ZoneInfo("Asia/Seoul")
 
 st.set_page_config(page_title="인생 제어판", layout="wide")
 
-# ---------------------------
-# Session State 초기화
-# ---------------------------
+# ===========================
+# 세션 상태 초기화
+# ===========================
 if "page" not in st.session_state:
     st.session_state.page = "lobby"
 
@@ -33,9 +34,9 @@ if "timer_running" not in st.session_state:
     st.session_state.timer_running = False
     st.session_state.timer_end_time = None
 
-# ---------------------------
+# ===========================
 # 페이지 이동 함수
-# ---------------------------
+# ===========================
 def go_to(page_name):
     st.session_state.page = page_name
 
@@ -91,7 +92,7 @@ elif st.session_state.page == "goals":
         go_to("lobby")
 
 # ===========================
-# 돈 관리 (폼 방식)
+# 돈 관리
 # ===========================
 elif st.session_state.page == "money":
     st.header("💸 돈 관리")
@@ -128,7 +129,7 @@ elif st.session_state.page == "money":
         go_to("lobby")
 
 # ===========================
-# 할 일 관리 (미루기 경보 포함)
+# 할 일 관리
 # ===========================
 elif st.session_state.page == "todos":
     st.header("📋 할 일 관리")
@@ -182,28 +183,39 @@ elif st.session_state.page == "notes":
         go_to("lobby")
 
 # ===========================
-# 타이머
+# 타이머 (오토 리프레시 + 소리)
 # ===========================
 elif st.session_state.page == "timer":
     st.header("⏱ 집중 타이머")
+    
+    # 오토 리프레시: 1초마다
+    st.experimental_autorefresh(interval=1000, key="timer_auto_refresh")
 
     minutes = st.number_input("시간(분)", 1, 180, 25)
     if st.button("타이머 시작"):
         st.session_state.timer_running = True
         st.session_state.timer_end_time = datetime.now(KST) + timedelta(minutes=minutes)
 
-    if st.session_state.timer_running and st.session_state.timer_end_time is not None:
-        remaining = st.session_state.timer_end_time - datetime.now(KST)
+    if st.session_state.timer_running and st.session_state.timer_end_time:
+        now = datetime.now(KST)
+        remaining = st.session_state.timer_end_time - now
         total_seconds = int(remaining.total_seconds())
 
         if total_seconds <= 0:
             st.session_state.timer_running = False
-            st.success("⏰ 타이머 종료! 수고했어요!")
+            st.success("⏰ 타이머 종료!")
+
+            # 브라우저 소리 알람
+            components.html("""
+            <audio autoplay>
+              <source src="https://www.soundjay.com/button/beep-07.mp3" type="audio/mpeg">
+            </audio>
+            """)
         else:
             minutes_left = total_seconds // 60
             seconds_left = total_seconds % 60
             st.warning(f"남은 시간: {minutes_left}분 {seconds_left}초")
-            st.experimental_rerun()
 
     if st.button("⬅ 로비로"):
+        st.session_state.timer_running = False
         go_to("lobby")

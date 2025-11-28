@@ -168,4 +168,9 @@ elif st.session_state.page == "todos":
 elif st.session_state.page == "notes":
     st.header("📝 메모장")
     new_notes = st.text_area("메모 입력", st.session_state.notes)
-    if new_notes !_
+    if new_notes != st.session_state.notes:   # ← 여기 수정
+        st.session_state.notes = new_notes
+        st.success("✔ 저장 완료")
+    
+    if st.button("⬅ 로비로"):
+        go_to("lobby")

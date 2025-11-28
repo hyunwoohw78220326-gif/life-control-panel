@@ -179,42 +179,93 @@ elif st.session_state.page == "notes":
     if st.button("⬅ 로비로"):
         go_to("lobby")
 
-# ===========================
-# 타이머
-# ===========================
-elif st.session_state.page == "timer":
-    st.header("⏱ 집중 타이머")
-    
-    minutes = st.number_input("시간(분)", 1, 180, 25)
-    if st.button("타이머 시작"):
-        st.session_state.timer_running = True
-        st.session_state.timer_end_time = datetime.now(KST) + timedelta(minutes=minutes)
+# 세션 초기화
+if "timer_running" not in st.session_state:
+    st.session_state.timer_running = False
+    st.session_state.timer_end_time = None
+    st.session_state.timer_seconds = 0
 
-    timer_placeholder = st.empty()
+st.header("⏱ 집중 타이머")
 
-    if st.session_state.timer_running and st.session_state.timer_end_time:
-        while st.session_state.timer_running:
-            now = datetime.now(KST)
-            remaining = st.session_state.timer_end_time - now
-            total_seconds = int(remaining.total_seconds())
+# =====================
+# 버튼으로 시간 설정
+# =====================
+col1, col2, col3, col4, col5 = st.columns(5)
+with col1:
+    if st.button("1H"):
+        st.session_state.timer_seconds = 3600
+with col2:
+    if st.button("5M"):
+        st.session_state.timer_seconds = 300
+with col3:
+    if st.button("1M"):
+        st.session_state.timer_seconds = 60
+with col4:
+    if st.button("1S"):
+        st.session_state.timer_seconds = 1
+with col5:
+    custom = st.number_input("CUSTOM(초)", min_value=1, value=st.session_state.timer_seconds)
+    if st.button("SET"):
+        st.session_state.timer_seconds = custom
 
-            if total_seconds <= 0:
-                st.session_state.timer_running = False
-                timer_placeholder.success("⏰ 타이머 종료!")
-                # 브라우저 소리 알람
-                components.html("""
-                <audio autoplay>
-                  <source src="https://www.soundjay.com/button/beep-07.mp3" type="audio/mpeg">
-                </audio>
-                """)
-                break
-            else:
-                minutes_left = total_seconds // 60
-                seconds_left = total_seconds % 60
-                timer_placeholder.warning(f"남은 시간: {minutes_left}분 {seconds_left}초")
-            
-            time.sleep(1)
-
-    if st.button("⬅ 로비로"):
+# =====================
+# START/STOP 버튼
+# =====================
+col_start, col_stop, col_reset = st.columns(3)
+with col_start:
+    if st.button("START"):
+        if st.session_state.timer_seconds > 0:
+            st.session_state.timer_running = True
+            st.session_state.timer_end_time = datetime.now(KST) + timedelta(seconds=st.session_state.timer_seconds)
+with col_stop:
+    if st.button("STOP"):
         st.session_state.timer_running = False
+        # 남은 시간 갱신
+        if st.session_state.timer_end_time:
+            remaining = st.session_state.timer_end_time - datetime.now(KST)
+            st.session_state.timer_seconds = max(int(remaining.total_seconds()), 0)
+with col_reset:
+    if st.button("RESET"):
+        st.session_state.timer_running = False
+        st.session_state.timer_seconds = 0
+        st.session_state.timer_end_time = None
+
+# =====================
+# 디지털 타이머 표시
+# =====================
+timer_placeholder = st.empty()
+
+if st.session_state.timer_running and st.session_state.timer_end_time:
+    while st.session_state.timer_running:
+        now = datetime.now(KST)
+        remaining = st.session_state.timer_end_time - now
+        total_seconds = int(remaining.total_seconds())
+        if total_seconds <= 0:
+            st.session_state.timer_running = False
+            st.session_state.timer_seconds = 0
+            timer_placeholder.markdown(f"<h1 style='text-align:center;font-size:80px;'>00:00</h1>", unsafe_allow_html=True)
+            # 소리 알람
+            components.html("""
+            <audio autoplay>
+              <source src="https://www.soundjay.com/button/beep-07.mp3" type="audio/mpeg">
+            </audio>
+            """)
+            break
+        else:
+            minutes_left = total_seconds // 60
+            seconds_left = total_seconds % 60
+            timer_placeholder.markdown(
+                f"<h1 style='text-align:center;font-size:80px;'>{minutes_left:02d}:{seconds_left:02d}</h1>",
+                unsafe_allow_html=True
+            )
+        time.sleep(1)
+else:
+    # 정지 또는 초기 상태
+    minutes_left = st.session_state.timer_seconds // 60
+    seconds_left = st.session_state.timer_seconds % 60
+    timer_placeholder.markdown(
+        f"<h1 style='text-align:center;font-size:80px;'>{minutes_left:02d}:{seconds_left:02d}</h1>",
+        unsafe_allow_html=True
+    )
+     if st.button("⬅ 로비로"):
         go_to("lobby")

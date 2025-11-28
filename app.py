@@ -183,39 +183,52 @@ elif st.session_state.page == "notes":
         go_to("lobby")
 
 # ===========================
-# 타이머 (오토 리프레시 + 소리)
+# 타이머
 # ===========================
 elif st.session_state.page == "timer":
     st.header("⏱ 집중 타이머")
-    
-    # 오토 리프레시: 1초마다
-    st.experimental_autorefresh(interval=1000, key="timer_auto_refresh")
 
     minutes = st.number_input("시간(분)", 1, 180, 25)
-    if st.button("타이머 시작"):
+    
+    # 타이머 시작 버튼
+    if st.button("타이머 시작", disabled=st.session_state.timer_running):
         st.session_state.timer_running = True
         st.session_state.timer_end_time = datetime.now(KST) + timedelta(minutes=minutes)
+        # 타이머 시작 시 바로 리런하여 잔여 시간 표시
+        st.experimental_rerun()
 
-    if st.session_state.timer_running and st.session_state.timer_end_time:
-        now = datetime.now(KST)
-        remaining = st.session_state.timer_end_time - now
+    # 타이머 중지 버튼
+    if st.session_state.timer_running:
+        if st.button("타이머 중지/초기화"):
+            st.session_state.timer_running = False
+            st.session_state.timer_end_time = None
+            st.info("타이머가 중지되었습니다.")
+            st.experimental_rerun() # 상태 초기화 후 화면 업데이트
+
+    if st.session_state.timer_running and st.session_state.timer_end_time is not None:
+        remaining = st.session_state.timer_end_time - datetime.now(KST)
         total_seconds = int(remaining.total_seconds())
 
         if total_seconds <= 0:
             st.session_state.timer_running = False
-            st.success("⏰ 타이머 종료!")
-
-            # 브라우저 소리 알람
-            components.html("""
-            <audio autoplay>
-              <source src="https://www.soundjay.com/button/beep-07.mp3" type="audio/mpeg">
-            </audio>
-            """)
+            st.session_state.timer_end_time = None # 타이머 만료 시점 초기화
+            st.success("⏰ 타이머 종료! 수고했어요!")
+            # 타이머 종료 후 리런을 멈추기 위해 이 시점에만 리런을 호출하지 않음
+            
         else:
             minutes_left = total_seconds // 60
             seconds_left = total_seconds % 60
             st.warning(f"남은 시간: {minutes_left}분 {seconds_left}초")
+            
+            # 1초마다 업데이트를 위해 일정 시간 후 리런
+            # Streamlit은 현재 이 기능을 공식적으로 지원하지 않으므로, 
+            # 이를 위해 페이지를 계속 리런하는 것은 Streamlit 앱에 부담을 줄 수 있습니다.
+            # 하지만 실시간 업데이트를 위해 현재 방식이 일반적입니다.
+            # 1초마다 업데이트를 위해 time.sleep(1) 대신 st.experimental_rerun()만 사용합니다.
+            st.experimental_rerun()
 
+    if st.button("⬅ 로비로"):
+        go_to("lobby")
     if st.button("⬅ 로비로"):
         st.session_state.timer_running = False
         go_to("lobby")
